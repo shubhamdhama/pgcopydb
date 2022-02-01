@@ -14,34 +14,16 @@
 #include "libpq-fe.h"
 #include "portability/instr_time.h"
 
+#include "access/xlogdefs.h"
+
 #if PG_MAJORVERSION_NUM >= 15
 #include "common/pg_prng.h"
 #endif
 
 #include "defaults.h"
+#include "parsing.h"
+#include "pg_utils.h"
 
-
-/*
- * OID values from PostgreSQL src/include/catalog/pg_type.h
- */
-#define BOOLOID 16
-#define NAMEOID 19
-#define INT4OID 23
-#define INT8OID 20
-#define TEXTOID 25
-#define LSNOID 3220
-
-/*
- * Maximum connection info length as used in walreceiver.h
- */
-#define MAXCONNINFO 1024
-
-
-/*
- * pg_stat_replication.sync_state is one if:
- *   sync, async, quorum, potential
- */
-#define PGSR_SYNC_STATE_MAXLENGTH 10
 
 /*
  * We receive a list of "other nodes" from the monitor, and we store that list
@@ -241,5 +223,43 @@ bool pg_copy(PGSQL *src, PGSQL *dst,
 bool pgsql_get_sequence(PGSQL *pgsql, const char *nspname, const char *relname,
 						int64_t *lastValue,
 						bool *isCalled);
+
+/*
+ * Logical Decoding support.
+ */
+typedef struct LogicalTrackLSN
+{
+	XLogRecPtr written_lsn;
+	XLogRecPtr flushed_lsn;
+	XLogRecPtr applied_lsn;
+} LogicalTrackLSN;
+
+typedef struct LogicalStreamClient
+{
+	PGSQL pgsql;
+	char slotName[NAMEDATALEN];
+	KeyVal pluginOptions;
+
+	XLogRecPtr startpos;
+	XLogRecPtr endpos;
+
+	TimestampTz now;
+	TimestampTz last_status;
+
+	LogicalTrackLSN current;    /* updated at receive time */
+	LogicalTrackLSN feedback;   /* updated at feedback sending time */
+
+	int standby_message_timeout;
+} LogicalStreamClient;
+
+
+bool pgsql_init_stream(LogicalStreamClient *client,
+					   const char *pguri,
+					   const char *slotName,
+					   XLogRecPtr startpos,
+					   XLogRecPtr endpos);
+
+bool pgsql_start_replication(LogicalStreamClient *client);
+bool pgsql_stream_logical(LogicalStreamClient *client);
 
 #endif /* PGSQL_H */
