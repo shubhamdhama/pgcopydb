@@ -1961,7 +1961,6 @@ pgsql_init_stream(LogicalStreamClient *client,
 
 	client->startpos = startpos;
 
-	client->last_fsync = -1;
 	client->fsync_interval = 10 * 1000;          /* 10 sec = default */
 	client->standby_message_timeout = 10 * 1000; /* 10 sec = default */
 
@@ -2083,6 +2082,7 @@ pgsql_stream_logical(LogicalStreamClient *client, LogicalStreamContext *context)
 
 	bool time_to_abort = false;
 
+	client->last_fsync = -1;
 	client->last_status = -1;
 	client->current.written_lsn = InvalidXLogRecPtr;
 
@@ -2474,9 +2474,13 @@ pgsqlSendFeedback(LogicalStreamClient *client,
 		return true;
 	}
 
-	log_info("Report write_lsn %X/%X, flush_lsn %X/%X",
-			 LSN_FORMAT_ARGS(client->current.written_lsn),
-			 LSN_FORMAT_ARGS(client->current.flushed_lsn));
+	if (client->current.written_lsn != InvalidXLogRecPtr ||
+		client->current.flushed_lsn != InvalidXLogRecPtr)
+	{
+		log_info("Report write_lsn %X/%X, flush_lsn %X/%X",
+				 LSN_FORMAT_ARGS(client->current.written_lsn),
+				 LSN_FORMAT_ARGS(client->current.flushed_lsn));
+	}
 
 	replybuf[len] = 'r';
 	len += 1;
