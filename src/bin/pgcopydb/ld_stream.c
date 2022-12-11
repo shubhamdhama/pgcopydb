@@ -79,13 +79,14 @@ stream_init_specs(StreamSpecs *specs,
 		case STREAM_PLUGIN_WAL2JSON:
 		{
 			KeyVal options = {
-				.count = 6,
+				.count = 7,
 				.keywords = {
 					"format-version",
 					"include-xids",
 					"include-schemas",
 					"include-transaction",
 					"include-types",
+					"numeric-data-types-as-string",
 					"filter-tables"
 				},
 				.values = {
@@ -94,6 +95,7 @@ stream_init_specs(StreamSpecs *specs,
 					"true",
 					"true",
 					"false",
+					"true",
 					"pgcopydb.*"
 				}
 			};
