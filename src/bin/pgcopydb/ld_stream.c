@@ -864,6 +864,7 @@ stream_write_json(LogicalStreamContext *context, bool previous)
 	{
 		privateContext->transactionInProgress = false;
 	}
+
 	/*
 	 * We are not expecting STREAM_ACTION_ROLLBACK here. It's a custom
 	 * message we write directly to the "latest" file using
@@ -2666,9 +2667,9 @@ stream_read_context(CDCPaths *paths,
 	 */
 	ConnectionRetryPolicy retryPolicy = { 0 };
 
-	int maxT = 10;              /* 10s */
-	int maxSleepTime = 1500;    /* 1.5s */
-	int baseSleepTime = 100;    /* 100ms */
+	int maxT = 120;             /* 120s */
+	int maxSleepTime = 10000;   /* 10s */
+	int baseSleepTime = 1000;   /* 1s */
 
 	(void) pgsql_set_retry_policy(&retryPolicy,
 								  maxT,
