@@ -44,7 +44,10 @@ typedef enum
 	STREAM_ACTION_SWITCH = 'X',
 	STREAM_ACTION_KEEPALIVE = 'K',
 	STREAM_ACTION_ENDPOS = 'E',
-	STREAM_ACTION_ROLLBACK = 'R'
+	STREAM_ACTION_ROLLBACK = 'R',
+	STREAM_ACTION_PGOUTPUT_RELATION = 'r',
+	STREAM_ACTION_PGOUTPUT_TYPE = 'y',
+	STREAM_ACTION_PGOUTPUT_ORIGIN = 'o'
 } StreamAction;
 
 typedef struct InternalMessage
@@ -627,6 +630,15 @@ bool parseTestDecodingMessageActionAndXid(LogicalStreamContext *context);
 bool parseTestDecodingMessage(StreamContext *privateContext,
 							  char *message,
 							  JSON_Value *json);
+
+/* ld_pgoutput.c */
+bool preparePgoutputMessage(LogicalStreamContext *context);
+
+bool parsePgoutputMessageActionAndXid(LogicalStreamContext *context);
+
+bool parsePgoutputMessage(StreamContext *privateContext,
+					 	  char *message,
+						  JSON_Value *json);
 
 /* ld_wal2json.c */
 bool prepareWal2jsonMessage(LogicalStreamContext *context);

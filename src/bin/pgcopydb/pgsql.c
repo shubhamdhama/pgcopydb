@@ -3499,6 +3499,10 @@ OutputPluginFromString(char *plugin)
 	{
 		return STREAM_PLUGIN_WAL2JSON;
 	}
+	else if (strcmp(plugin, "pgoutput") == 0)
+	{
+		return STREAM_PLUGIN_PGOUTPUT;
+	}
 
 	return STREAM_PLUGIN_UNKNOWN;
 }
@@ -3525,6 +3529,11 @@ OutputPluginToString(StreamOutputPlugin plugin)
 		case STREAM_PLUGIN_WAL2JSON:
 		{
 			return "wal2json";
+		}
+
+		case STREAM_PLUGIN_PGOUTPUT:
+		{
+			return "pgoutput";
 		}
 
 		default:

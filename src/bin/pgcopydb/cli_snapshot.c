@@ -239,17 +239,12 @@ cli_create_snapshot(int argc, char **argv)
 
 	(void) find_pg_commands(&(copySpecs.pgPaths));
 
-	char *dir =
-		IS_EMPTY_STRING_BUFFER(createSNoptions.dir)
-		? NULL
-		: createSNoptions.dir;
-
 	bool createWorkDir = true;
 	bool service = true;
 	char *serviceName = "snapshot";
 
 	if (!copydb_init_workdir(&copySpecs,
-							 dir,
+							 createSNoptions.dir,
 							 service,
 							 serviceName,
 							 createSNoptions.restart,

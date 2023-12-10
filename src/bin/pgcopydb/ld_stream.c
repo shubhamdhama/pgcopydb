@@ -70,6 +70,7 @@ stream_init_specs(StreamSpecs *specs,
 	 * Such a sprevious command could be: pgcopydb snapshot --follow.
 	 */
 	specs->slot = *slot;
+	specs->slot.plugin = STREAM_PLUGIN_PGOUTPUT;
 
 	switch (specs->slot.plugin)
 	{
@@ -108,6 +109,25 @@ stream_init_specs(StreamSpecs *specs,
 					"true",
 					"true",
 					"pgcopydb.*"
+				}
+			};
+
+			specs->pluginOptions = options;
+
+			break;
+		}
+
+		case STREAM_PLUGIN_PGOUTPUT:
+		{
+			KeyVal options = {
+				.count = 2,
+				.keywords = {
+					"proto_version",
+					"publication_names"
+				},
+				.values = {
+					"1",
+					"my_publication" // todo
 				}
 			};
 
@@ -1706,6 +1726,11 @@ parseMessageActionAndXid(LogicalStreamContext *context)
 			return parseTestDecodingMessageActionAndXid(context);
 		}
 
+		case STREAM_PLUGIN_PGOUTPUT:
+		{
+			return parsePgoutputMessageActionAndXid(context);
+		}
+
 		case STREAM_PLUGIN_WAL2JSON:
 		{
 			return parseWal2jsonMessageActionAndXid(context);
@@ -1740,6 +1765,11 @@ prepareMessageJSONbuffer(LogicalStreamContext *context)
 		case STREAM_PLUGIN_WAL2JSON:
 		{
 			return prepareWal2jsonMessage(context);
+		}
+
+		case STREAM_PLUGIN_PGOUTPUT:
+		{
+			return preparePgoutputMessage(context);
 		}
 
 		default:
@@ -2496,7 +2526,7 @@ stream_create_sentinel(CopyDataSpec *copySpecs,
 		"create schema if not exists pgcopydb",
 		"drop table if exists pgcopydb.sentinel",
 		"create table pgcopydb.sentinel"
-		"(startpos pg_lsn, endpos pg_lsn, apply bool, "
+		"(startpos pg_lsn primary key, endpos pg_lsn, apply bool, "
 		" write_lsn pg_lsn, flush_lsn pg_lsn, replay_lsn pg_lsn)",
 		NULL
 	};

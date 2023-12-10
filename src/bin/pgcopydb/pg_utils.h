@@ -106,6 +106,10 @@ bool feTimestampDifferenceExceeds(TimestampTz start_time,
 
 void fe_sendint64(int64 i, char *buf);
 int64 fe_recvint64(char *buf);
+void fe_sendint32(int32 i, char *buf);
+int32 fe_recvint32(char *buf);
+void fe_sendint16(int16 i, char *buf);
+int16 fe_recvint16(char *buf);
 
 
 #endif /* PG_UTILS_H */

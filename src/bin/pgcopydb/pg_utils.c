@@ -111,3 +111,29 @@ fe_recvint64(char *buf)
 
 	return pg_ntoh64(n64);
 }
+
+/*
+ * Converts an int64 from network byte order to native format.
+ */
+int32
+fe_recvint32(char *buf)
+{
+	uint32 n32;
+
+	memcpy(&n32, buf, sizeof(n32));
+
+	return pg_ntoh32(n32);
+}
+
+/*
+ * Converts an int64 from network byte order to native format.
+ */
+int16
+fe_recvint16(char *buf)
+{
+	uint16 n16;
+
+	memcpy(&n16, buf, sizeof(n16));
+
+	return pg_ntoh16(n16);
+}
