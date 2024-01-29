@@ -32,9 +32,9 @@ static bool copydb_filtering_as_json(CopyDataSpec *copySpecs,
 									 JSON_Object *jsobj,
 									 const char *key);
 
-static bool copydb_table_array_as_json(DatabaseCatalog *sourceDB,
-									   JSON_Object *jsobj,
-									   const char *key);
+static bool copydb_get_tables_as_json(DatabaseCatalog *sourceDB,
+									  JSON_Object *jsobj,
+									  const char *key);
 
 static bool copydb_index_array_as_json(DatabaseCatalog *sourceDB,
 									   JSON_Object *jsobj,
@@ -44,7 +44,7 @@ static bool copydb_seq_array_as_json(DatabaseCatalog *sourceDB,
 									 JSON_Object *jsobj,
 									 const char *key);
 
-static bool copydb_table_array_as_json_hook(void *ctx, SourceTable *table);
+static bool copydb_get_tables_as_json_hook(void *ctx, SourceTable *table);
 static bool copydb_index_array_as_json_hook(void *ctx, SourceIndex *index);
 static bool copydb_seq_array_as_json_hook(void *ctx, SourceSequence *seq);
 
@@ -54,6 +54,13 @@ static bool copydb_table_parts_array_as_json_hook(void *ctx,
 static bool copydb_update_progress_table_hook(void *ctx, SourceTable *table);
 static bool copydb_update_progress_index_hook(void *ctx, SourceIndex *index);
 
+static bool copydb_add_table_as_json(DatabaseCatalog *sourceDB,
+									 JSON_Array *jsTableArray,
+									 SourceTable *table);
+static bool copydb_table_array_as_json(DatabaseCatalog *sourceDB,
+									   SourceTableArray *tableArray,
+									   JSON_Object *jsobj,
+									   const char *key);
 
 /*
  * copydb_prepare_schema_json_file prepares a JSON formatted file that contains
@@ -85,7 +92,7 @@ copydb_prepare_schema_json_file(CopyDataSpec *copySpecs)
 	}
 
 	/* array of tables */
-	if (!copydb_table_array_as_json(sourceDB, jsobj, "tables"))
+	if (!copydb_get_tables_as_json(sourceDB, jsobj, "tables"))
 	{
 		/* errors have already been logged */
 		return false;
@@ -210,13 +217,13 @@ typedef struct TableContext
 } TableContext;
 
 /*
- * copydb_table_array_as_json prepares the given tableArray as a JSON array of
+ * copydb_get_tables_as_json prepares the given tableArray as a JSON array of
  * objects within the given JSON_Value.
  */
 static bool
-copydb_table_array_as_json(DatabaseCatalog *sourceDB,
-						   JSON_Object *jsobj,
-						   const char *key)
+copydb_get_tables_as_json(DatabaseCatalog *sourceDB,
+						  JSON_Object *jsobj,
+						  const char *key)
 {
 	JSON_Value *jsTables = json_value_init_array();
 	JSON_Array *jsTableArray = json_value_get_array(jsTables);
@@ -228,7 +235,7 @@ copydb_table_array_as_json(DatabaseCatalog *sourceDB,
 
 	if (!catalog_iter_s_table(sourceDB,
 							  &context,
-							  &copydb_table_array_as_json_hook))
+							  &copydb_get_tables_as_json_hook))
 	{
 		log_error("Failed to prepare a JSON array for our catalog of tables, "
 				  "see above for details");
@@ -243,15 +250,54 @@ copydb_table_array_as_json(DatabaseCatalog *sourceDB,
 
 
 /*
- * copydb_table_array_as_json_hook is an iterator callback function.
+ * copydb_get_tables_as_json_hook is an iterator callback function.
  */
 static bool
-copydb_table_array_as_json_hook(void *ctx, SourceTable *table)
+copydb_get_tables_as_json_hook(void *ctx, SourceTable *table)
 {
 	TableContext *context = (TableContext *) ctx;
 	DatabaseCatalog *sourceDB = context->sourceDB;
 	JSON_Array *jsTableArray = context->jsTableArray;
 
+	if (!copydb_add_table_as_json(sourceDB, jsTableArray, table))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+static bool
+copydb_table_array_as_json(DatabaseCatalog *sourceDB,
+						   SourceTableArray *tableArray,
+						   JSON_Object *jsobj,
+						   const char *key)
+{
+	JSON_Value *jsTables = json_value_init_array();
+	JSON_Array *jsTableArray = json_value_get_array(jsTables);
+
+	for (int i = 0; i < tableArray->count; ++i)
+	{
+		if (!copydb_add_table_as_json(sourceDB, jsTableArray,
+									  &(tableArray->array[i])))
+		{
+			return false;
+		}
+	}
+
+	/* attach the JSON array to the main JSON object under the provided key */
+	json_object_set_value(jsobj, key, jsTables);
+
+	return true;
+}
+
+
+static bool
+copydb_add_table_as_json(DatabaseCatalog *sourceDB,
+						 JSON_Array *jsTableArray,
+						 SourceTable *table)
+{
 	JSON_Value *jsTable = json_value_init_object();
 	JSON_Object *jsTableObj = json_value_get_object(jsTable);
 
@@ -832,7 +878,8 @@ copydb_progress_as_json(CopyDataSpec *copySpecs,
 	/* in-progress */
 	SourceTableArray *tableArray = &(progress->tableInProgress);
 
-	if (!copydb_table_array_as_json(sourceDB, jsTableObj, "in-progress"))
+	if (!copydb_table_array_as_json(sourceDB, tableArray,
+									jsTableObj, "in-progress"))
 	{
 		/* errors have already been logged */
 		return false;
