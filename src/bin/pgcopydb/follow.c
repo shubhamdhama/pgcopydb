@@ -136,6 +136,9 @@ follow_reset_sequences(CopyDataSpec *copySpecs, StreamSpecs *streamSpecs)
 		return false;
 	}
 
+	/* reset sequences irrespective of earlier state */
+	seqSpecs.runState.sequenceCopyIsDone = false;
+
 	if (!copydb_copy_all_sequences(&seqSpecs))
 	{
 		/* errors have already been logged */
